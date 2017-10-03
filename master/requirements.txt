@@ -1,2 +1,4 @@
 Dijkstar
+ipaddress
 paramiko
+psycopg2

@@ -16,44 +16,119 @@ from kyponet_master import routing
 
 
 def test_get_routes():
-    config = {
-        'networks': {
-            'networks': [
-                {'name': 'lan2', 'ip': '10.0.2.0', 'prefix': 24},
-                {'name': 'lan4', 'ip': '10.0.4.0', 'prefix': 24},
-                {'name': 'lan1', 'ip': '10.0.1.0', 'prefix': 24},
-                {'name': 'lan3', 'ip': '10.0.3.0', 'prefix': 24}
-            ]
-        },
-        'routes': {
-            'routes': [
-                {'name': '', 'lan1': 'lan1', 'lan2': 'lan2'},
-                {'name': '', 'lan1': 'lan3', 'lan2': 'lan2'},
-                {'name': '', 'lan1': 'lan3', 'lan2': 'lan4'}
-            ]
-        }
-    }
+    nets = [
+        {'connectable_id': 'lan2', 'cidr4': '10.0.2.0/24'},
+        {'connectable_id': 'lan4', 'cidr4': '10.0.4.0/24'},
+        {'connectable_id': 'lan1', 'cidr4': '10.0.1.0/24'},
+        {'connectable_id': 'lan3', 'cidr4': '10.0.3.0/24'}
+    ]
+    links = [
+        {'src_connectable_id': 'lan1', 'dst_connectable_id': 'lan2'},
+        {'src_connectable_id': 'lan2', 'dst_connectable_id': 'lan1'},
+        {'src_connectable_id': 'lan3', 'dst_connectable_id': 'lan2'},
+        {'src_connectable_id': 'lan2', 'dst_connectable_id': 'lan3'},
+        {'src_connectable_id': 'lan3', 'dst_connectable_id': 'lan4'},
+        {'src_connectable_id': 'lan4', 'dst_connectable_id': 'lan3'}
+    ]
     expected_routes_by_nets = {
         'lan2': [
-            {'to': '10.0.4.0/24', 'dev': 'eth2', 'metric': 200},
-            {'to': '10.0.1.0/24', 'dev': 'eth1', 'metric': 100},
-            {'to': '10.0.3.0/24', 'dev': 'eth2', 'metric': 100}
+            {
+                'to': '10.0.1.1',
+                'dev': 'eth1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.3.1',
+                'dev': 'eth2',
+                'metric': 100
+            },
+            {
+                'to': '10.0.4.0/24',
+                'via': '10.0.3.1',
+                'metric': 200
+            },
+            {
+                'to': '10.0.1.0/24',
+                'via': '10.0.1.1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.3.0/24',
+                'via': '10.0.3.1',
+                'metric': 100
+            }
         ],
         'lan4': [
-            {'to': '10.0.2.0/24', 'dev': 'eth2', 'metric': 200},
-            {'to': '10.0.1.0/24', 'dev': 'eth2', 'metric': 300},
-            {'to': '10.0.3.0/24', 'dev': 'eth2', 'metric': 100}
+            {
+                'to': '10.0.3.1',
+                'dev': 'eth1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.2.0/24',
+                'via': '10.0.3.1',
+                'metric': 200
+            },
+            {
+                'to': '10.0.1.0/24',
+                'via': '10.0.3.1',
+                'metric': 300
+            },
+            {
+                'to': '10.0.3.0/24',
+                'via': '10.0.3.1',
+                'metric': 100
+            }
         ],
         'lan1': [
-            {'to': '10.0.2.0/24', 'dev': 'eth1', 'metric': 100},
-            {'to': '10.0.4.0/24', 'dev': 'eth1', 'metric': 300},
-            {'to': '10.0.3.0/24', 'dev': 'eth1', 'metric': 200}
+            {
+                'to': '10.0.2.1',
+                'dev': 'eth1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.2.0/24',
+                'via': '10.0.2.1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.4.0/24',
+                'via': '10.0.2.1',
+                'metric': 300
+            },
+            {
+                'to': '10.0.3.0/24',
+                'via': '10.0.2.1',
+                'metric': 200
+            }
         ],
         'lan3': [
-            {'to': '10.0.2.0/24', 'dev': 'eth1', 'metric': 100},
-            {'to': '10.0.4.0/24', 'dev': 'eth3', 'metric': 100},
-            {'to': '10.0.1.0/24', 'dev': 'eth1', 'metric': 200}
+            {
+                'to': '10.0.2.1',
+                'dev': 'eth1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.4.1',
+                'dev': 'eth2',
+                'metric': 100
+            },
+            {
+                'to': '10.0.2.0/24',
+                'via': '10.0.2.1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.4.0/24',
+                'via': '10.0.4.1',
+                'metric': 100
+            },
+            {
+                'to': '10.0.1.0/24',
+                'via': '10.0.2.1',
+                'metric': 200
+            }
         ]
     }
-    routes_by_nets = routing.get_routes_by_nets(config)
+    routes_by_nets = routing.get_routes_by_nets(nets, links)
     assert routes_by_nets == expected_routes_by_nets

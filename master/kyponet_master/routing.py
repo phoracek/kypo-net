@@ -12,57 +12,87 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import ipaddress
+
 from dijkstar import Graph
 from dijkstar.algorithm import extract_shortest_path_from_predecessor_list
 from dijkstar.algorithm import single_source_shortest_paths
 
 
-def get_routes_by_nets(config):
+# set all possible routes, not the shortest one only
+def get_routes_by_nets(nets, links):
     routes_by_nets = {}
 
-    config_nets = config['networks']['networks']
-    config_routes = config['routes']['routes']
+    nets_by_ids = {net['connectable_id']: net for net in nets}
 
-    graph = _get_graph(config['routes']['routes'])
-    nets_by_names = {
-        net['name']: net for net in config_nets}
+    graph = _get_graph(set(nets_by_ids), links)
 
-    for net_name in nets_by_names:
-        predecessors_map = single_source_shortest_paths(graph, net_name)
-        routes_by_nets[net_name] = []
+    for net_id in nets_by_ids:
+        neighs_routes = []
+        nets_routes = []
 
-        for dest_net_name in nets_by_names:
-            if dest_net_name == net_name:
+        predecessors_map = single_source_shortest_paths(graph, net_id)
+
+        for dest_net_id in nets_by_ids:
+            if dest_net_id == net_id:
                 continue
             try:
                 shortest_path = extract_shortest_path_from_predecessor_list(
-                    predecessors_map, dest_net_name)
+                    predecessors_map, dest_net_id)
             except KeyError:  # no route to destination
                 continue
-            next_hop_net = shortest_path[0][1]
+            next_hop_net_id = shortest_path[0][1]
             total_cost = shortest_path[3]
-            routes_by_nets[net_name].append({
-                'to': _get_route_to(nets_by_names[dest_net_name]),
-                'dev': _get_route_dev(next_hop_net, config_routes),
+            if dest_net_id == next_hop_net_id:
+                neighs_routes.append({
+                    'to': _get_route_neigh_to(nets_by_ids[dest_net_id]),
+                    'dev': _get_route_dev(next_hop_net_id, net_id, links),
+                    'metric': total_cost
+                })
+            nets_routes.append({
+                'to': _get_route_to(nets_by_ids[dest_net_id]),
+                'via': _get_route_via(nets_by_ids[next_hop_net_id]),
                 'metric': total_cost
             })
+
+        routes_by_nets[net_id] = neighs_routes + nets_routes
 
     return routes_by_nets
 
 
-def _get_graph(config_routes):
+def _get_graph(nets_ids, links):
     graph = Graph()
-    for route in config_routes:
-        graph.add_edge(route['lan1'], route['lan2'], route.get('metric', 100))
-        graph.add_edge(route['lan2'], route['lan1'], route.get('metric', 100))
+    for link in links:
+        src_connectable_id = link['src_connectable_id']
+        dst_connectable_id = link['dst_connectable_id']
+        if src_connectable_id in nets_ids and dst_connectable_id in nets_ids:
+            graph.add_edge(src_connectable_id, dst_connectable_id, 100)
     return graph
 
 
+def _get_route_neigh_to(next_hop_net):
+    return _get_first_host_addr(next_hop_net['cidr4'])
+
+
 def _get_route_to(net):
-    return '{}/{}'.format(net['ip'], net['prefix'])
+    return net['cidr4']
 
 
-def _get_route_dev(next_hop_net_name, config_routes):
-    for i, route in enumerate(config_routes):
-        if next_hop_net_name in (route['lan1'], route['lan2']):
-            return 'eth{}'.format(i + 1)
+def _get_route_dev(next_hop_net_id, net_id, links):
+    i = 0
+    for link in links:
+        src_connectable_id = link['src_connectable_id']
+        dst_connectable_id = link['dst_connectable_id']
+        if src_connectable_id == net_id:
+            i += 1
+            if dst_connectable_id == next_hop_net_id:
+                return 'eth{}'.format(i)
+
+
+def _get_route_via(next_hop_net):
+    return _get_first_host_addr(next_hop_net['cidr4'])
+
+
+def _get_first_host_addr(subnet):
+    net = ipaddress.ip_network(subnet)
+    return str(next(net.hosts()))

@@ -15,7 +15,8 @@
 from distutils.core import setup
 
 setup(
-    name='kyponet client',
-      version='0.0.1',
-      packages=['kyponet_client']
+    name='kyponet-client',
+    version='0.0.1',
+    packages=['kyponet_client'],
+    scripts=['scripts/kyponet-client']
 )

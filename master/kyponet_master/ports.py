@@ -15,36 +15,42 @@
 import collections
 
 
-def get_ports_by_nets(config):
+def get_ports_by_nets(node_ifaces, nets, links):
     ports_by_nets = {}
 
-    config_nets = config['networks']['networks']
-    config_routes = config['routes']['routes']
-    config_hosts = config['hosts']['hosts']
+    node_ifaces_ids = {
+        node_iface['connectable_id'] for node_iface in node_ifaces}
+    nets_ids = {net['connectable_id'] for net in nets}
 
-    number_of_routes_per_net = _get_number_of_routes_per_net(config_routes)
-    number_of_hosts_per_net = _get_number_of_hosts_per_net(config_hosts)
-    for net in config_nets:
-        net_name = net['name']
-        ports_by_nets[net_name] = []
-        start_index = number_of_routes_per_net[net_name] + 1
-        end_index = start_index + number_of_hosts_per_net[net_name] - 1
-        for i in range(start_index, end_index+1):
-            ports_by_nets[net_name].append('eth{}'.format(i))
+    number_of_routes_per_net = _get_number_of_routes_per_net(nets_ids, links)
+    number_of_hosts_per_net = _get_number_of_hosts_per_net(
+        node_ifaces_ids, nets_ids, links)
+    for net_id in nets_ids:
+        ports_by_nets[net_id] = []
+        start_index = number_of_routes_per_net[net_id] + 1
+        end_index = start_index + number_of_hosts_per_net[net_id] - 1
+        for i in range(start_index, end_index + 1):
+            ports_by_nets[net_id].append('eth{}'.format(i))
 
     return ports_by_nets
 
 
-def _get_number_of_routes_per_net(config_routes):
+def _get_number_of_routes_per_net(nets_ids, links):
     number_of_routes_per_net = collections.defaultdict(lambda: 0)
-    for route in config_routes:
-        number_of_routes_per_net[route['lan1']] += 1
-        number_of_routes_per_net[route['lan2']] += 1
+    for link in links:
+        src_connectable_id = link['src_connectable_id']
+        dst_connectable_id = link['dst_connectable_id']
+        if src_connectable_id in nets_ids and dst_connectable_id in nets_ids:
+            number_of_routes_per_net[src_connectable_id] += 1
     return number_of_routes_per_net
 
 
-def _get_number_of_hosts_per_net(config_hosts):
+def _get_number_of_hosts_per_net(node_ifaces_ids, nets_ids, links):
     number_of_hosts_per_net = collections.defaultdict(lambda: 0)
-    for host in config_hosts:
-        number_of_hosts_per_net[host['lan']] += 1
+    for link in links:
+        src_connectable_id = link['src_connectable_id']
+        dst_connectable_id = link['dst_connectable_id']
+        if (src_connectable_id in nets_ids and
+                dst_connectable_id in node_ifaces_ids):
+            number_of_hosts_per_net[src_connectable_id] += 1
     return number_of_hosts_per_net

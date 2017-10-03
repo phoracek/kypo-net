@@ -13,14 +13,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import json
-import sys
+import logging
 
 from kyponet_master import setup
 
 
 def main():
-    config = json.load(sys.stdin)
+    logging.basicConfig(level=logging.INFO)
+    config = setup.get_config_from_db()
     setup.setup(config)
 
 

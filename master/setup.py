@@ -21,8 +21,8 @@ with open('requirements.txt') as f:
 
 setup(
     name='kyponet-master',
-      version='0.0.1',
-      packages=['kyponet_master'],
-      scripts=['scripts/kyponet-master'],
-      install_requires=install_requires
+    version='0.0.1',
+    packages=['kyponet_master'],
+    scripts=['scripts/kyponet-master'],
+    install_requires=install_requires
 )

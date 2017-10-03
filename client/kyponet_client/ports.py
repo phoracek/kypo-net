@@ -24,4 +24,4 @@ def setup_ports(ports):
 
 
 def _attach_port(port):
-    check_call(['ovs-vsctl', 'add-port', BRIDGE_NAME, port])
+    check_call(['ovs-vsctl', '--may-exist', 'add-port', BRIDGE_NAME, port])

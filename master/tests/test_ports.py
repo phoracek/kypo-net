@@ -16,58 +16,39 @@ from kyponet_master import ports
 
 
 def test_get_ports():
-    config = {
-        'networks': {
-            'networks': [
-                {'name': 'lan2', 'ip': '10.0.2.0', 'prefix': 24},
-                {'name': 'lan4', 'ip': '10.0.4.0', 'prefix': 24},
-                {'name': 'lan1', 'ip': '10.0.1.0', 'prefix': 24},
-                {'name': 'lan3', 'ip': '10.0.3.0', 'prefix': 24}
-            ]
-        },
-        'routes': {
-            'routes': [
-                {'name': '', 'lan1': 'lan1', 'lan2': 'lan2'},
-                {'name': '', 'lan1': 'lan3', 'lan2': 'lan2'},
-                {'name': '', 'lan1': 'lan3', 'lan2': 'lan4'}
-            ]
-        },
-        'hosts': {
-            'hosts': [
-                {
-                    'name': 'host4',
-                    'lan': 'lan4',
-                    'ip': '10.0.4.2',
-                    'physRole': 'desktop'
-                },
-                {
-                    'name': 'host1',
-                    'lan': 'lan1',
-                    'ip': '10.0.1.2',
-                    'physRole': 'desktop',
-                    'logicalRole': 'victim',
-                    'ram': 1024
-                },
-                {
-                    'name': 'host2',
-                    'lan': 'lan2',
-                    'ip': '10.0.2.2',
-                    'physRole': 'desktop'
-                },
-                {
-                    'name': 'host5',
-                    'lan': 'lan4',
-                    'ip': '10.0.4.3',
-                    'physRole': 'desktop'
-                }
-            ]
-        }
-    }
+    node_ifaces = [
+        {'connectable_id': 'host4'},
+        {'connectable_id': 'host1'},
+        {'connectable_id': 'host2'},
+        {'connectable_id': 'host5'}
+    ]
+    nets = [
+        {'connectable_id': 'lan2', 'cidr4': '10.0.2.0/24'},
+        {'connectable_id': 'lan4', 'cidr4': '10.0.4.0/24'},
+        {'connectable_id': 'lan1', 'cidr4': '10.0.1.0/24'},
+        {'connectable_id': 'lan3', 'cidr4': '10.0.3.0/24'},
+    ]
+    links = [
+        {'src_connectable_id': 'lan1', 'dst_connectable_id': 'lan2'},
+        {'src_connectable_id': 'lan2', 'dst_connectable_id': 'lan1'},
+        {'src_connectable_id': 'lan3', 'dst_connectable_id': 'lan2'},
+        {'src_connectable_id': 'lan2', 'dst_connectable_id': 'lan3'},
+        {'src_connectable_id': 'lan3', 'dst_connectable_id': 'lan4'},
+        {'src_connectable_id': 'lan4', 'dst_connectable_id': 'lan3'},
+        {'src_connectable_id': 'lan4', 'dst_connectable_id': 'host4'},
+        {'src_connectable_id': 'host4', 'dst_connectable_id': 'lan4'},
+        {'src_connectable_id': 'lan1', 'dst_connectable_id': 'host1'},
+        {'src_connectable_id': 'host1', 'dst_connectable_id': 'lan1'},
+        {'src_connectable_id': 'lan2', 'dst_connectable_id': 'host2'},
+        {'src_connectable_id': 'host2', 'dst_connectable_id': 'lan2'},
+        {'src_connectable_id': 'lan4', 'dst_connectable_id': 'host5'},
+        {'src_connectable_id': 'host5', 'dst_connectable_id': 'lan4'}
+    ]
     expected_ports_by_nets = {
         'lan2': ['eth3'],
         'lan4': ['eth2', 'eth3'],
         'lan1': ['eth2'],
         'lan3': []
     }
-    ports_by_nets = ports.get_ports_by_nets(config)
+    ports_by_nets = ports.get_ports_by_nets(node_ifaces, nets, links)
     assert ports_by_nets == expected_ports_by_nets

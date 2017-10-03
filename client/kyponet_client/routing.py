@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from subprocess import check_call
+import subprocess
 
 # TODO: support editting
 def setup_routes(routes):
@@ -21,9 +21,18 @@ def setup_routes(routes):
 
 
 def _add_route(route):
-    check_call([
-        'ip', 'route', 'add',
-        route['to'],
-        'dev', route['dev'],
-        'metric', route['metric']
-    ])
+    try:
+        command = [
+            'ip', 'route', 'add',
+            route['to'],
+            'metric', str(route['metric'])
+        ]
+        if 'via' in route:
+            command.extend(['via', route['via']])
+        if 'dev' in route:
+            command.extend(['dev', route['dev']])
+        subprocess.check_call(command)
+    except subprocess.CalledProcessError as cpe:
+        return
+        if cpe.returncode != 2:  # route already exists
+            raise
